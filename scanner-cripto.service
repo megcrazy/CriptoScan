@@ -1,0 +1,17 @@
+# /etc/systemd/system/scanner-cripto.service
+[Unit]
+Description=Scanner Cripto (Fusion)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/cripto
+EnvironmentFile=/etc/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=FUSION_STATE_PATH=/opt/cripto/fusion_state.json
+ExecStart=/opt/cripto/venv/bin/python run_scanner.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
