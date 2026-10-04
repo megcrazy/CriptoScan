@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Scanner Cripto</title>
+<style>
+:root{--bg:#0b0e14;--card:#131824;--bd:#222a3b;--tx:#d6dbe6;--mu:#7d879c;--g:#22c55e;--r:#ef4444;--y:#f5b942;--c:#38bdf8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:13px/1.4 system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;padding:12px 16px;border-bottom:1px solid var(--bd)}
+h1{font-size:16px;margin:0}.pill{background:var(--card);border:1px solid var(--bd);border-radius:999px;padding:3px 10px;color:var(--mu)}
+.up{color:var(--g)}.dn{color:var(--r)}.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:10px 16px}
+button,select,input{background:var(--card);color:var(--tx);border:1px solid var(--bd);border-radius:6px;padding:5px 10px;font:inherit}
+button.on{border-color:var(--y);color:var(--y)}#warn{margin:0 16px;padding:8px 12px;border-radius:6px;background:#2a2110;color:var(--y);display:none}
+.wrap{overflow-x:auto;padding:0 16px 24px}table{width:100%;border-collapse:collapse;min-width:1180px}
+th{position:sticky;top:0;background:var(--bg);text-align:left;color:var(--mu);font-weight:500;padding:8px;border-bottom:1px solid var(--bd);z-index:1}
+td{padding:7px 8px;border-bottom:1px solid #182033;vertical-align:middle}tr.linha{cursor:pointer}tr.linha:hover td{background:#10151f}
+tr.sel td{background:#141d2e}
+a{color:inherit;text-decoration:none}.sym{font-weight:600}.sym:hover{text-decoration:underline}.sub{color:var(--mu);font-size:11px}
+.b{display:inline-block;padding:2px 8px;border-radius:5px;font-weight:700;font-size:11px}.long{background:#0f3a24;color:var(--g)}.short{background:#3f1515;color:var(--r)}
+.tag{font-size:11px;padding:1px 7px;border-radius:4px;border:1px solid var(--bd);color:var(--mu)}.tag.alinhado{color:var(--g);border-color:#1d5a37}.tag.pullback{color:var(--y);border-color:#6b4f14}
+.sc{display:flex;align-items:center;gap:6px;min-width:96px}.sc i{display:block;height:6px;border-radius:3px;background:var(--y)}.sc b{width:34px}
+.ch{display:inline-block;margin:1px 2px 1px 0;padding:1px 6px;border-radius:4px;font-size:11px;border:1px solid}
+.ch.bearish{color:var(--r);border-color:var(--r);background:#2a1414}.ch.bullish{color:var(--g);border-color:var(--g);background:#0f2a1c}
+.ch.opp{background:none;opacity:.55;border-style:dashed}.ch.armada{border-style:dotted}.ch.fraca{opacity:.4}
+.star{color:var(--y)}.foot{color:var(--mu);padding:0 16px 20px;font-size:11px}
+/* gatilho / resultado */
+.gt{font-size:11px;line-height:1.5}.gt .tp{font-weight:700}.gt.setup .tp{color:var(--y)}.gt.sweep .tp{color:var(--mu)}.gt.breakout .tp{color:var(--c)}
+.dv{display:inline-block;padding:0 5px;border-radius:4px;font-size:10px;border:1px solid;margin-left:3px}
+.dv.ok{color:var(--g);border-color:#1d5a37}.dv.warn{color:var(--y);border-color:#6b4f14}.dv.no{color:var(--mu);border-color:var(--bd)}
+.res{font-variant-numeric:tabular-nums;font-size:12px}.res .f{color:var(--g)}.res .a{color:var(--r)}
+/* placar */
+.placar{margin:0 16px 14px;border:1px solid var(--bd);border-radius:8px;background:var(--card)}
+.placar summary{cursor:pointer;padding:9px 12px;color:var(--y);font-weight:600}
+.placar table{min-width:0;font-size:12px}.placar th,.placar td{padding:5px 8px}
+/* drawer */
+#drawer{position:fixed;top:0;right:0;height:100%;width:min(560px,94vw);background:var(--card);border-left:1px solid var(--bd);
+  transform:translateX(102%);transition:transform .18s ease;overflow-y:auto;z-index:20;box-shadow:-12px 0 32px #0008}
+#drawer.on{transform:none}
+#drawer .dh{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--bd);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+#drawer .db{padding:12px 16px 40px}
+#drawer h3{margin:18px 0 6px;font-size:12px;color:var(--mu);text-transform:uppercase;letter-spacing:.04em}
+#drawer table{min-width:0;font-size:12px}#drawer th,#drawer td{padding:4px 6px}
+#drawer .close{cursor:pointer;font-size:18px;line-height:1;color:var(--mu)}
+#fundo{position:fixed;inset:0;background:#0006;opacity:0;pointer-events:none;transition:opacity .18s;z-index:19}
+#fundo.on{opacity:1;pointer-events:auto}
+</style></head><body>
+<header><h1>📡 Scanner Cripto</h1><span id="btc" class="pill">BTC …</span><span id="scan" class="pill">…</span></header>
+<div id="warn"></div>
+<div class="bar">
+ <button data-l="ambos" class="on">Todos</button><button data-l="long">🟢 Long</button><button data-l="short">🔴 Short</button>
+ <select id="tfs"><option value="1">≥1 TF</option><option value="2" selected>≥2 TFs</option><option value="3">≥3 TFs</option></select>
+ <select id="gh" title="só ativos com gatilho recente">
+  <option value="0">Gatilho: qualquer</option><option value="6">Gatilho ≤6h</option>
+  <option value="24" selected>Gatilho ≤24h</option><option value="168">Gatilho ≤7d</option>
+ </select>
+ <select id="gd" title="cruzamento do gatilho com a divergência">
+  <option value="todos">Div: qualquer</option><option value="confluente">Div ✔ confluente</option>
+  <option value="conflito">Div ⚠ contrária</option><option value="sem_div">Div ✗ sem</option>
+ </select>
+ <label class="pill"><input type="checkbox" id="todas"> fracas + conflitos</label>
+ <input id="q" placeholder="filtrar moeda…" size="14"><span class="pill" id="n"></span>
+</div>
+<details class="placar" id="placarBox"><summary>📊 Placar: o gatilho pagou? (clique)</summary><div id="placar"></div></details>
+<div class="wrap"><table><thead><tr><th>#</th><th>Moeda</th><th title="viés das divergências AGORA — pode ser o oposto do último gatilho">Lado</th><th>Score</th><th>Contexto</th><th>Divergências CCI</th><th>Preço/OI</th><th>Zona fibo (1H / 15m)</th><th title="último alerta enviado: tipo, lado do alerta e horário">Gatilho</th><th title="ret = o que o gatilho fez desde a entrada; exc = descontando o mercado; melhor/pior = extremos do caminho">Resultado desde o gatilho</th><th>Preço</th></tr></thead><tbody id="rows"></tbody></table></div>
+<details class="placar" id="ultimosBox"><summary>🕒 Últimos gatilhos: o que o bot disparou (clique)</summary>
+ <div class="bar" style="padding:8px 12px">
+  <select id="uh" title="janela">
+   <option value="1">1h</option><option value="6">6h</option><option value="24" selected>24h</option>
+   <option value="72">3d</option><option value="168">7d</option>
+  </select>
+  <button data-ut="todos" class="on">Todos</button><button data-ut="setup">setup</button>
+  <button data-ut="sweep">SW</button><button data-ut="breakout">BUY/SELL</button>
+  <label class="pill" title="os que uma regra de alerta cortou ficam gravados e aparecem com 🚫"><input type="checkbox" id="usup" checked> incluir suprimidos</label>
+  <span class="pill" id="un"></span>
+ </div>
+ <div id="ultimos"></div>
+</details>
+<div class="foot">Score = soma de pontos com motivo (passe o mouse no score). Chip cheio = a favor do lado; tracejado = contra (repique). ★ = zona 1H a favor.
+ <b>Clique na linha</b> para abrir o histórico do ativo. Ferramenta de triagem, não sinal de entrada.</div>
+<div id="fundo"></div>
+<aside id="drawer"><div class="dh"><b id="dtit">—</b><span class="close" id="dfechar">✕</span></div><div class="db" id="dcorpo"></div></aside>
+<script>
+const $=s=>document.querySelector(s);let lado='ambos',dados=[],sel=null;
+const fmt=p=>p==null?'—':p>=100?p.toFixed(2):p>=1?p.toFixed(4):p>=1e-4?p.toPrecision(4):p.toExponential(2);
+const pct=v=>(v==null?'—':(v>=0?'+':'')+v.toFixed(2)+'%');
+const cls=v=>v==null?'':v>=0?'f':'a';
+const idade=m=>m==null?'—':m<60?m+'min':m<1440?Math.floor(m/60)+'h'+(m%60?String(m%60).padStart(2,'0'):''):Math.floor(m/1440)+'d';
+const hora=ts=>new Date(ts).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const TIPO={alinhado:'alinhado',pullback:'pullback (TF menor contra)',misto:'misto',conflito:'conflito'};
+const OI={preco_alta_oi_alta:'P↑ OI↑',preco_alta_oi_baixa:'P↑ OI↓',preco_baixa_oi_alta:'P↓ OI↑',preco_baixa_oi_baixa:'P↓ OI↓',neutro:'neutro',sem_historico:'sem histórico',misto:'misto'};
+const TPG={setup:'SETUP',sweep:'SW',breakout:'BUY/SELL'};
+const zon=(z,l)=>!z?'—':`<span class="${z.vies_rejeicao===l?'star':'sub'}">${z.papel==='resistencia'?'RES':z.papel==='suporte'?'SUP':'DENTRO'}</span> <span class="sub">${z.dist_pct}% · ${fmt(z.zona_fundo)}–${fmt(z.zona_topo)}</span>`;
+
+// O `inFibZone` do Pine testa se a VELA tocou a zona, não se o preço está nela: numa
+// vela que abre na zona e dispara, o alerta sai com o preço longe (AIN: +63,9%).
+const distZona=g=>{const p=g&&g.preco,zf=g&&g.zona_fundo,zt=g&&g.zona_topo;
+  if(!p||!zf||!zt)return null;return p>zt?(p/zt-1)*100:p<zf?-(1-p/zf)*100:0;};
+function seloZona(g){
+  const d=distZona(g);
+  if(d==null||Math.abs(d)<3)return '';
+  return `<br><span class="dv warn" title="o Pine marca a zona quando a VELA a tocou — o preço não está nela agora">⚠ ${Math.abs(d).toFixed(1)}% ${d>0?'acima':'abaixo'} da zona</span>`;
+}
+function celulaGatilho(g,lado){
+  if(!g) return '<span class="sub">—</span>';
+  const dir=g.lado===1?'long':'short';
+  let dv='<span class="dv no">div ✗</span>';
+  if(g.div_tf&&g.div_conflito) dv=`<span class="dv warn">div ✔⚠ ${g.div_tf} ${idade(g.div_idade_min)}</span>`;
+  else if(g.div_tf) dv=`<span class="dv ok">div ✔ ${g.div_tf} ${idade(g.div_idade_min)}</span>`;
+  else if(g.div_conflito) dv=`<span class="dv warn">div ⚠ ${g.n_divs_contra} contra</span>`;
+  const sup=g.suprimido?`<br><span class="sub" title="a regra de alerta cortou este gatilho">🚫 suprimido · ${g.motivo||''}</span>`:'';
+  return `<div class="gt ${g.tipo}" ${g.suprimido?'style="opacity:.55"':''}><span class="tp">${TPG[g.tipo]||g.tipo}</span> `+
+    `<span class="b ${dir}" style="padding:0 5px">${g.lado===1?'COMPRA':'VENDA'} ${g.tf}</span>`+
+    `<br><span class="sub">há ${idade(g.idade_min)}${g.score!=null?' · score '+Math.round(g.score):''}`+
+    ` · entrada ${fmt(g.preco)}</span><br>${dv}${seloZona(g)}${sup}</div>`;
+}
+function celulaResultado(g){
+  if(!g) return '<span class="sub">—</span>';
+  if(g.fav==null&&g.ret==null) return '<span class="sub">aguardando</span>';
+  const r=[1,4,12,24].map(h=>[h,g['r_'+h+'h']]).filter(x=>x[1]!=null);
+  const dur=r.length?`<br><span class="sub">${r.map(([h,v])=>h+'h '+pct(v)).join(' · ')}</span>`:'';
+  // `ret` é o que o gatilho fez; melhor/pior são os extremos do caminho. O "melhor"
+  // pode ser NEGATIVO (o preço nunca foi a favor) — por isso ▲ não serve de rótulo.
+  const ret=g.ret==null?'<span class="sub">sem preço ainda</span>':
+    `<b class="${cls(g.ret)}">${pct(g.ret)}</b> <span class="sub">${g.n_candles||0} velas</span>`;
+  const exc=g.excesso==null?'':` <span class="sub">· exc <b class="${cls(g.excesso)}">${pct(g.excesso)}</b></span>`;
+  return `<div class="res">${ret}${exc}<br>`+
+         `<span class="sub">melhor</span> <span class="${cls(g.fav)}">${g.fav==null?'—':pct(g.fav)}</span> `+
+         `<span class="sub">pior</span> <span class="${cls(-(g.adv||0))}">${g.adv==null?'—':pct(-g.adv)}</span>`+
+         `${dur}</div>`;
+}
+
+function render(){
+  const q=$('#q').value.trim().toUpperCase(),L=dados.filter(c=>!q||c.symbol.includes(q));
+  $('#n').textContent=L.length+' ativos';
+  $('#rows').innerHTML=L.map((c,i)=>{
+    const chips=c.divs.map(d=>{const a=(d.direction==='bearish'?'short':'long')===c.lado;
+      return `<span class="ch ${d.direction} ${d.estado} ${a?'':'opp'}" title="CCI ${Math.round(d.cci1)}→${Math.round(d.cci2)}→${Math.round(d.cci_atual)} | ${d.estado} | ${d.candles_desde_swing2} velas | vol ${d.volume_ratio.toFixed(2)}x | taker ${d.taker_buy_ratio.toFixed(2)}${d.dado_velho?' | DADO VELHO':''}">${d.tf}</span>`}).join('');
+    return `<tr class="linha ${sel===c.symbol?'sel':''}" data-sym="${c.symbol}"><td class="sub">${i+1}</td>
+     <td><a class="sym" target="_blank" rel="noopener" href="${c.tv}">${c.symbol.replace('USDT','')}</a> <a class="sub" target="_blank" rel="noopener" href="${c.binance}" title="abrir na Binance">↗</a><div class="sub">TradingView</div></td>
+     <td><span class="b ${c.lado}">${c.lado.toUpperCase()}</span></td>
+     <td title="${c.motivos.join('\n')}"><div class="sc"><b>${c.score}</b><i style="width:${Math.max(4,Math.min(100,c.score/20*100))}px"></i></div></td>
+     <td><span class="tag ${c.tipo}" title="dominância ${c.dominancia}">${TIPO[c.tipo]}</span></td>
+     <td>${chips}</td>
+     <td>${(c.oi||[]).map(o=>`<span class="tag" title="${o.tf}: preço ${o.price_change_pct==null?'—':o.price_change_pct.toFixed(2)+'%'} · OI ${o.oi_change_pct==null?'—':o.oi_change_pct.toFixed(2)+'%'}">${o.tf} ${OI[o.relation]||o.relation}</span>`).join(' ')||'—'}</td>
+     <td>${c.compat?'<span class="star">★</span> ':''}${zon(c.zona_1h,c.lado)}<br>${zon(c.zona_15m,c.lado)}</td>
+     <td>${celulaGatilho(c.gatilho,c.lado)}</td>
+     <td>${celulaResultado(c.gatilho)}</td>
+     <td>${fmt(c.preco)}</td></tr>`}).join('');
+  document.querySelectorAll('tr.linha').forEach(tr=>tr.onclick=e=>{
+    if(e.target.tagName==='A')return; abrir(tr.dataset.sym)});
+}
+
+/* ── drawer ─────────────────────────────────────────────── */
+function fechar(){$('#drawer').classList.remove('on');$('#fundo').classList.remove('on');sel=null;render()}
+async function abrir(sym){
+  sel=sym;render();$('#dtit').textContent=sym;$('#dcorpo').innerHTML='<p class="sub">carregando…</p>';
+  $('#drawer').classList.add('on');$('#fundo').classList.add('on');
+  try{
+    const d=await (await fetch('/api/ativo/'+sym)).json();
+    const sg=s=>s>=0?'f':'a';
+    let h=`<p>Preço <b>${fmt(d.preco)}</b></p>`;
+    h+='<h3>Gatilhos do Fusion</h3>';
+    const sin=d.sinais||[], evs=d.eventos||[], dvs=d.divs||[], zns=d.zonas||[], ois=d.oi||[];
+    if(!sin.length) h+='<p class="sub">nenhum ainda — o log começa no primeiro alerta enviado</p>';
+    else{h+='<table><tr><th>quando</th><th>tipo</th><th>tf</th><th>lado</th><th>score</th><th>div</th><th>▲fav</th><th>▼adv</th><th>r24</th></tr>';
+      h+=sin.map(s=>{const dv=s.div_tf?`${s.div_tf} ${idade(s.div_idade_min)}${s.div_conflito?' ⚠':''}`:(s.div_conflito?'⚠ contra':'✗');
+        const mk=s.suprimido?` <span class="sub" title="${s.motivo||''}">🚫</span>`:'';
+        return `<tr${s.suprimido?' style="opacity:.6"':''}><td class="sub">${hora(s.ts)}</td>
+        <td>${TPG[s.tipo]||s.tipo}${mk}</td><td>${s.tf}</td>
+        <td class="${s.lado===1?'up':'dn'}">${s.lado===1?'COMPRA':'VENDA'}</td><td>${s.score==null?'—':Math.round(s.score)}</td>
+        <td class="sub">${dv}</td><td class="${sg(s.max_fav_pct)}">${pct(s.max_fav_pct)}</td>
+        <td class="${sg(-(s.max_adv_pct||0))}">${pct(-(s.max_adv_pct||0))}</td>
+        <td class="${sg(s.r_24h)}">${pct(s.r_24h)}</td></tr>`}).join('')+'</table>';}
+    h+='<h3>Divergências agora</h3>';
+    h+=dvs.length?'<table><tr><th>tf</th><th>dir</th><th>estado</th><th>CCI</th><th>força</th><th>velas</th></tr>'+
+      dvs.map(x=>`<tr><td>${x.tf}</td><td class="${x.direction==='bearish'?'dn':'up'}">${x.direction==='bearish'?'baixa':'alta'}</td>
+      <td class="sub">${x.estado}</td><td class="sub">${Math.round(x.cci1)}→${Math.round(x.cci2)}→${Math.round(x.cci_atual)}</td>
+      <td>${x.forca.toFixed(0)}</td><td class="sub">${x.candles_desde_swing2}</td></tr>`).join('')+'</table>'
+      :'<p class="sub">nenhuma ativa</p>';
+    h+='<h3>Histórico de divergências <span class="sub">(nasceu → último estado visto)</span></h3>';
+    h+=evs.length?'<table><tr><th>nasceu</th><th>tf</th><th>dir</th><th>força</th><th>preço na época</th><th>estado</th></tr>'+
+      evs.map(e=>{const t2=new Date(e.ts2).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+      const ini=e.estado_inicial, fim=e.estado_final;
+      return `<tr><td class="sub">${t2}</td><td>${e.tf}</td><td class="${e.direction==='bearish'?'dn':'up'}">${e.direction==='bearish'?'baixa':'alta'}</td>
+      <td>${e.forca.toFixed(0)}</td><td class="sub">${fmt(e.preco_em)}</td><td class="sub">${ini}${fim&&fim!==ini?' → '+fim:''}</td></tr>`}).join('')+'</table>'
+      :'<p class="sub">sem histórico ainda</p>';
+    h+='<h3>Zonas de fibo</h3>';
+    h+=zns.length?zns.map(z=>`<div class="sub">${z.tf}: ${z.direcao} · ${z.papel} · ${fmt(z.zona_fundo)}–${fmt(z.zona_topo)} · ${z.dist_pct}% · C em ${hora(z.c_time)} (${z.idade_c} velas)</div>`).join('')
+      :'<p class="sub">sem zona ativa</p>';
+    h+='<h3>Preço / OI</h3>';
+    h+=ois.length?'<table><tr><th>tf</th><th>preço</th><th>var</th><th>OI var</th><th></th></tr>'+
+      ois.map(o=>`<tr><td>${o.tf}</td><td>${fmt(o.price)}</td><td>${pct(o.price_change_pct)}</td>
+      <td>${pct(o.oi_change_pct)}</td><td class="sub">${OI[o.relation]||o.relation}</td></tr>`).join('')+'</table>'
+      :'<p class="sub">sem snapshot</p>';
+    h+=`<p style="margin-top:18px"><a class="sub" href="https://www.tradingview.com/chart/?symbol=BINANCE:${sym}.P" target="_blank" rel="noopener">abrir no TradingView ↗</a></p>`;
+    $('#dcorpo').innerHTML=h;
+  }catch(e){$('#dcorpo').innerHTML='<p class="sub">erro: '+e.message+'</p>'}
+}
+$('#dfechar').onclick=fechar;$('#fundo').onclick=fechar;
+document.addEventListener('keydown',e=>{if(e.key==='Escape')fechar()});
+
+/* ── placar: melhores gatilhos + enviados x suprimidos ──── */
+let PLACAR=null, PMIN=10, PORD='taxa';
+function renderPlacar(){
+  const box=$('#placar');
+  if(!PLACAR){box.innerHTML='<div style="padding:10px 12px" class="sub">carregando…</div>';return}
+  const c=PLACAR.confluencia||{};
+  const taxa=g=>g.n_medido?((g.fav_maior||0)/g.n_medido):-1;
+  let linhas=(PLACAR.por_tipo||[]).filter(g=>g.n>=PMIN);
+  if(PORD==='taxa') linhas.sort((a,b)=>taxa(b)-taxa(a));
+  else if(PORD==='exc') linhas.sort((a,b)=>(b.media_excesso||-99)-(a.media_excesso||-99));
+  else if(PORD==='n') linhas.sort((a,b)=>b.n-a.n);
+  else linhas.sort((a,b)=>(b.media_fav||-9)-(a.media_fav||-9));
+  let h=`<div style="padding:10px 12px" class="sub">últimos 7 dias · ${c.div_eventos||0} eventos de divergência ·
+    ${c.sinais||0} gatilhos (${c.enviados||0} enviados, ${c.suprimidos||0} suprimidos por regra) ·
+    ${c.com_div||0} com div ✔ (${c.sinais?Math.round(c.com_div/c.sinais*100):0}%) · ${c.com_div_conflito||0} com div ⚠
+    ${c.div_idade_min_media!=null?`· idade média da div no gatilho ${idade(c.div_idade_min_media)}`:''}
+    <br><b>Ordenar por</b>
+    <select id="pord"><option value="taxa">▲>▼ (melhores)</option><option value="exc">excesso (o que sobra)</option>
+    <option value="n">amostra</option><option value="fav">▲favorável médio</option></select>
+    <b>· mínimo de</b> <select id="pmin"><option value="1">1</option><option value="10" selected>10</option>
+    <option value="20">20</option><option value="50">50</option></select> <b>gatilhos</b>
+    <span class="sub">(subir o mínimo reduz o ruído de amostra pequena)</span></div>`;
+  const m=PLACAR.mercado||{};
+  if(m.indice_pct!=null||m.aviso){
+    h+=`<div style="padding:0 12px 10px" class="sub">mercado nas últimas ${m.janela_h||8}h:
+      índice do universo <b class="${cls(m.indice_pct)}">${m.indice_pct==null?'—':pct(m.indice_pct)}</b>
+      · BTC <b class="${cls(m.btc_pct)}">${m.btc_pct==null?'—':pct(m.btc_pct)}</b>
+      · gatilhos: ${m.compra||0} compra / ${m.venda||0} venda
+      <br>o <b>excesso</b> é o retorno do gatilho menos o que o mercado deu na mesma janela —
+      é ele que diz se o gatilho tem valor próprio.</div>`;
+    if(m.aviso) h+=`<div style="margin:0 12px 10px;padding:8px 10px;border-radius:6px;background:#2a2110;color:var(--y)">⚠️ ${m.aviso}</div>`;
+  }
+  if(!linhas.length){h+='<div style="padding:0 12px 12px" class="sub">nenhum grupo com esse mínimo ainda</div>';}
+  else{
+    h+='<table><tr><th>tipo</th><th>tf</th><th>lado</th><th>divergência</th><th>n</th>'+
+       '<th>medidos</th><th>▲>▼</th><th>ret méd</th><th>excesso</th><th>acerto exc</th>'+
+       '<th>▲fav</th><th>▼adv</th><th>r24 n</th><th>suprimidos</th><th>exc sup</th></tr>';
+    h+=linhas.map(g=>{
+      const t=g.n_medido?Math.round((g.fav_maior||0)/g.n_medido*100)+'%':'—';
+      const cor=g.n_medido>=10?(taxa(g)>=0.5?'up':'dn'):'sub';
+      const exc=g.media_excesso;
+      const corE=g.n_exc>=10?((g.exc_pos||0)/g.n_exc>=0.5?'up':'dn'):'sub';
+      const acE=g.n_exc?Math.round((g.exc_pos||0)/g.n_exc*100)+'%':'—';
+      return `<tr><td>${TPG[g.tipo]||g.tipo}</td><td>${g.tf}</td>
+      <td class="${g.lado===1?'up':'dn'}">${g.lado===1?'C':'V'}</td><td class="sub">${g.grupo}</td>
+      <td>${g.n}</td><td class="sub">${g.n_medido||0}</td>
+      <td class="${cor}">${t}</td>
+      <td class="${cls(g.media_ret)}">${g.media_ret==null?'—':pct(g.media_ret)}</td>
+      <td class="${cls(exc)}"><b>${exc==null?'—':pct(exc)}</b></td>
+      <td class="${corE}">${acE}</td>
+      <td class="up">${g.media_fav==null?'—':'+'+g.media_fav.toFixed(2)+'%'}</td>
+      <td class="dn">${g.media_adv==null?'—':'-'+g.media_adv.toFixed(2)+'%'}</td>
+      <td class="sub">${g.n_r24||0}</td>
+      <td class="sub">${g.n_sup||0}</td>
+      <td class="${cls(g.media_excesso_sup)}">${g.media_excesso_sup==null?'—':pct(g.media_excesso_sup)}</td></tr>`}).join('');
+    h+='</table><div style="padding:8px 12px" class="sub">'+
+       '<b>excesso</b> = retorno do gatilho menos o que o mercado andou na mesma janela: é o único número que diz se o gatilho tem valor próprio. '+
+       'O <b>ret méd</b> sozinho engana — numa perna de baixa todo short "acerta". '+
+       'r24 só aparece depois de 24 h. As colunas <b>sup</b> são o que a regra cortou — se o excesso delas for alto, a regra está jogando dinheiro fora.</div>';
+  }
+  box.innerHTML=h;
+  const a=$('#pord'), b=$('#pmin');
+  if(a) a.onchange=()=>{PORD=a.value;renderPlacar()};
+  if(b) b.onchange=()=>{PMIN=+b.value;renderPlacar()};
+}
+async function placar(){
+  const box=$('#placar');
+  if(PLACAR){renderPlacar();return}
+  try{
+    const r=await fetch('/api/placar?horas=168');
+    if(!r.ok) throw new Error('HTTP '+r.status+(r.status===404?' — reinicie a API (`uvicorn api:app`) para o placar aparecer':''));
+    PLACAR=await r.json();
+    if(!(PLACAR.por_tipo||[]).length){box.innerHTML='<div style="padding:10px 12px" class="sub">ainda sem gatilhos registrados — enche conforme o scanner roda</div>';return}
+    renderPlacar();
+  }catch(e){box.innerHTML='<div style="padding:10px 12px" class="sub">erro: '+e.message+'</div>'}
+}
+$('#placarBox').addEventListener('toggle',e=>{if(e.target.open)placar()});
+
+/* ── últimos gatilhos: feed cronológico ───────────────────
+   Diferente do painel: lá a lista nasce das divergências (e exige 2+ TFs), então um
+   gatilho num ativo sem divergência viva NÃO aparece. Aqui aparece tudo que o bot
+   disparou, na ordem, com o que tinha de divergência e o que aconteceu depois. */
+let ULT=null,UH=24,UT='todos',USUP=true;
+function renderUltimos(){
+  const box=$('#ultimos');
+  if(!ULT){box.innerHTML='<div style="padding:10px 12px" class="sub">carregando…</div>';return}
+  const L=(ULT.gatilhos||[]).filter(g=>(UT==='todos'||g.tipo===UT)&&(USUP||!g.suprimido));
+  $('#un').textContent=`${L.length} de ${ULT.total} gatilhos · ${ULT.horas}h`+
+    (ULT.suprimidos?` · ${ULT.suprimidos} suprimido${ULT.suprimidos>1?'s':''}`:'');
+  if(!L.length){box.innerHTML='<div style="padding:10px 12px" class="sub">nenhum gatilho nessa janela</div>';return}
+  let h='<table><tr><th>quando</th><th>ativo</th><th>tipo</th><th>tf</th><th>lado</th>'+
+        '<th>score</th><th>divergência</th><th>resultado desde a entrada</th><th>mercado</th></tr>';
+  h+=L.map(g=>{
+    const dv=g.div_tf?`<span class="dv ok">✔ ${g.div_tf} ${idade(g.div_idade_min)}</span>`:
+      (g.n_divs_contra?`<span class="dv warn">⚠ ${g.n_divs_contra} contra</span>`:
+       '<span class="dv no">✗</span>');
+    const sup=g.suprimido?`<span class="sub" title="${g.motivo||''}"> 🚫</span>`:'';
+    const zona=seloZona({preco:g.preco,zona_fundo:g.zona_fundo,zona_topo:g.zona_topo});
+    const dir=g.lado===1?'long':'short';
+    const res=celulaResultado({fav:g.max_fav_pct,adv:g.max_adv_pct,ret:g.ret_pct,
+      excesso:g.excesso_pct,n_candles:g.n_candles,r_1h:g.r_1h,r_4h:g.r_4h,r_12h:g.r_12h,r_24h:g.r_24h});
+    const mkt=g.bench_pct==null?'<span class="sub">—</span>':
+      `<span class="${cls(g.bench_pct)}">${pct(g.bench_pct)}</span>`;
+    return `<tr data-sym="${g.symbol}" style="cursor:pointer${g.suprimido?';opacity:.6':''}">
+      <td class="sub" title="${hora(g.ts)}">${idade(Math.max(0,Math.round((Date.now()-g.ts)/60000)))} atrás</td>
+      <td><span class="sym">${g.symbol.replace('USDT','')}</span>${sup}</td>
+      <td class="gt ${g.tipo}"><span class="tp">${TPG[g.tipo]||g.tipo}</span></td>
+      <td>${g.tf}</td>
+      <td><span class="b ${dir}" style="padding:1px 6px">${g.lado===1?'COMPRA':'VENDA'}</span></td>
+      <td>${g.score==null?'—':Math.round(g.score)}</td>
+      <td>${dv}${zona}</td><td>${res}</td><td>${mkt}</td></tr>`}).join('');
+  h+='</table><div style="padding:8px 12px" class="sub">Tudo que o bot disparou, inclusive o que uma regra de alerta cortou (🚫, gravado mas não enviado). '+
+     '<b>Clique numa linha</b> para abrir o histórico completo do ativo. '+
+     'A coluna <b>mercado</b> é o que o universo andou na mesma janela.</div>';
+  box.innerHTML=h;
+  box.querySelectorAll('tr[data-sym]').forEach(tr=>tr.onclick=e=>{
+    if(e.target.tagName==='A')return; abrir(tr.dataset.sym)});
+}
+async function carregarUltimos(){
+  const box=$('#ultimos');
+  try{
+    const r=await fetch(`/api/gatilhos?limite=200&horas=${UH}`);
+    if(!r.ok) throw new Error('HTTP '+r.status+(r.status===404?' — reinicie a API (`uvicorn api:app`) para o feed aparecer':''));
+    ULT=await r.json(); renderUltimos();
+  }catch(e){box.innerHTML='<div style="padding:10px 12px" class="sub">erro: '+e.message+'</div>'}
+}
+$('#ultimosBox').addEventListener('toggle',e=>{if(e.target.open)carregarUltimos()});
+$('#uh').onchange=()=>{UH=+$('#uh').value;carregarUltimos()};
+$('#usup').onchange=()=>{USUP=$('#usup').checked;renderUltimos()};
+document.querySelectorAll('button[data-ut]').forEach(b=>b.onclick=()=>{
+  UT=b.dataset.ut;document.querySelectorAll('button[data-ut]').forEach(x=>x.classList.toggle('on',x===b));renderUltimos()});
+
+async function btc(){try{const b=await (await fetch('/api/btc')).json(),t=b.tfs,cl=b.var_24h_pct>=0?'up':'dn';
+  $('#btc').innerHTML=`BTC ${fmt(b.preco)} <span class="${cl}">${b.var_24h_pct.toFixed(2)}%</span> · 1h ${t['1h'].tendencia} · 4h ${t['4h'].tendencia} (RSI ${t['4h'].rsi})`;
+  const w=$('#warn'),alta=t['4h'].tendencia==='alta',baixa=t['4h'].tendencia==='baixa';
+  w.style.display=(lado==='short'&&alta)||(lado==='long'&&baixa)?'block':'none';
+  w.textContent=lado==='short'?'⚠️ BTC 4h em alta: shorts em alts costumam levar squeeze.':'⚠️ BTC 4h em baixa: longs em alts costumam falhar.';}catch(e){}}
+async function load(){
+  const q=`lado=${lado}&min_tfs=${$('#tfs').value}&todas=${$('#todas').checked}&limite=150`+
+          `&so_gatilho_h=${$('#gh').value}&so_div=${$('#gd').value}`;
+  try{const r=await fetch('/api/painel?'+q);if(!r.ok)throw new Error(r.status);const j=await r.json();dados=j.candidatos;
+    const s=Object.entries(j.scans).map(([k,v])=>`${k} ${new Date(v.finished_at*1000).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`).join(' · ');
+    $('#scan').textContent='scans: '+s;render();btc();
+    if($('#ultimosBox').open) carregarUltimos();      // o feed acompanha o refresh
+  }catch(e){$('#scan').textContent='erro: '+e.message}
+}
+document.querySelectorAll('button[data-l]').forEach(b=>b.onclick=()=>{lado=b.dataset.l;document.querySelectorAll('button[data-l]').forEach(x=>x.classList.toggle('on',x===b));load()});
+$('#tfs').onchange=load;$('#todas').onchange=load;$('#gh').onchange=load;$('#gd').onchange=load;$('#q').oninput=render;
+load();setInterval(load,30000);
+</script></body></html>
